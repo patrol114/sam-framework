@@ -42,14 +42,16 @@ async def run_onboarding() -> int:
         print("1. OpenAI")
         print("2. Anthropic (Claude)")
         print("3. xAI (Grok)")
-        print("4. Local OpenAI-compatible (e.g., Ollama)")
-        provider_choice = input("Choice (1-4, default: 1): ").strip() or "1"
+        print("4. DeepSeek")
+        print("5. Local OpenAI-compatible (e.g., Ollama)")
+        provider_choice = input("Choice (1-5, default: 1): ").strip() or "1"
 
         provider_map = {
             "1": "openai",
             "2": "anthropic",
             "3": "xai",
-            "4": "local",
+            "4": "deepseek",
+            "5": "local",
         }
         provider = provider_map.get(provider_choice, "openai")
         profile_updates["LLM_PROVIDER"] = provider
@@ -94,6 +96,19 @@ async def run_onboarding() -> int:
             )
             storage.store_api_key("xai_api_key", xai_key)
             profile_updates.update({"XAI_MODEL": model, "XAI_BASE_URL": base_url})
+
+        elif provider == "deepseek":
+            print(CLIFormatter.info("DeepSeek API Key (https://platform.deepseek.com/)"))
+            ds_key = getpass.getpass("Enter your DeepSeek API Key (hidden): ").strip()
+            while not ds_key:
+                print(CLIFormatter.warning("API key is required."))
+                ds_key = getpass.getpass("Enter your DeepSeek API Key: ").strip()
+            model = input("DeepSeek Model (default: deepseek-chat): ").strip() or "deepseek-chat"
+            base_url = input("DeepSeek Base URL (default: https://api.deepseek.com/v1): ").strip() or (
+                "https://api.deepseek.com/v1"
+            )
+            storage.store_api_key("deepseek_api_key", ds_key)
+            profile_updates.update({"DEEPSEEK_MODEL": model, "DEEPSEEK_BASE_URL": base_url})
 
         elif provider == "local":
             print(CLIFormatter.info("Local OpenAI-compatible endpoint (e.g., Ollama/LM Studio)"))

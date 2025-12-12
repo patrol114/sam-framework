@@ -8,6 +8,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Tuple, Union, cast
 
+if __name__ == "__main__" and __package__ is None:
+    import sys
+    from pathlib import Path
+
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    __package__ = "sam"
+
 from .config.profile_store import get_profile_store
 from .config.settings import API_KEY_ALIASES, PRIVATE_KEY_ALIASES, Settings
 from .utils.wallets import (
@@ -220,7 +227,7 @@ class InteractiveSettingsManager:
                 display_name="LLM Provider",
                 description="Choose your AI language model provider",
                 setting_type=SettingType.CHOICE,
-                choices=["openai", "anthropic", "xai", "openai_compat", "local"],
+                choices=["openai", "anthropic", "xai", "deepseek", "openai_compat", "local"],
                 default_value="openai",
             ),
             # OpenAI Settings
@@ -280,6 +287,28 @@ class InteractiveSettingsManager:
                 setting_type=SettingType.CHOICE,
                 choices=["grok-2-latest", "grok-beta"],
                 default_value="grok-2-latest",
+            ),
+            # DeepSeek Settings
+            SettingDefinition(
+                key="DEEPSEEK_API_KEY",
+                display_name="DeepSeek API Key",
+                description="Your DeepSeek API key",
+                setting_type=SettingType.PASSWORD,
+                sensitive=True,
+            ),
+            SettingDefinition(
+                key="DEEPSEEK_MODEL",
+                display_name="DeepSeek Model",
+                description="DeepSeek model to use",
+                setting_type=SettingType.TEXT,
+                default_value="deepseek-chat",
+            ),
+            SettingDefinition(
+                key="DEEPSEEK_BASE_URL",
+                display_name="DeepSeek Base URL",
+                description="Custom DeepSeek API base URL",
+                setting_type=SettingType.TEXT,
+                default_value="https://api.deepseek.com/v1",
             ),
             # Local LLM Settings
             SettingDefinition(

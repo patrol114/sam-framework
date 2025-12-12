@@ -16,8 +16,15 @@ import re
 import shutil
 import sys
 import textwrap
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Optional, cast
+
+if __name__ == "__main__" and __package__ is None:
+    # Enable running as a standalone script (python sam/cli.py)
+    package_root = Path(__file__).resolve().parent.parent
+    sys.path.append(str(package_root))
+    __package__ = "sam"
 
 try:
     import uvloop
@@ -517,6 +524,8 @@ async def run_interactive_session(
                 return Settings.ANTHROPIC_MODEL
             if Settings.LLM_PROVIDER == "xai":
                 return Settings.XAI_MODEL
+            if Settings.LLM_PROVIDER == "deepseek":
+                return Settings.DEEPSEEK_MODEL
             if Settings.LLM_PROVIDER == "local":
                 return Settings.LOCAL_LLM_MODEL
             if Settings.LLM_PROVIDER == "openai_compat":
@@ -638,6 +647,9 @@ async def run_interactive_session(
         elif Settings.LLM_PROVIDER == "xai":
             print(f" xAI Model: {Settings.XAI_MODEL}")
             print(f" xAI Base URL: {Settings.XAI_BASE_URL}")
+        elif Settings.LLM_PROVIDER == "deepseek":
+            print(f" DeepSeek Model: {Settings.DEEPSEEK_MODEL}")
+            print(f" DeepSeek Base URL: {Settings.DEEPSEEK_BASE_URL}")
         elif Settings.LLM_PROVIDER in ("openai_compat", "local"):
             model = (
                 Settings.OPENAI_MODEL
@@ -1900,6 +1912,8 @@ async def main() -> int:
         elif Settings.LLM_PROVIDER == "anthropic" and not Settings.ANTHROPIC_API_KEY:
             need_onboarding = True
         elif Settings.LLM_PROVIDER == "xai" and not Settings.XAI_API_KEY:
+            need_onboarding = True
+        elif Settings.LLM_PROVIDER == "deepseek" and not Settings.DEEPSEEK_API_KEY:
             need_onboarding = True
         # local/openai_compat may not need API keys in some cases
 

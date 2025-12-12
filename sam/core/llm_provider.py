@@ -760,6 +760,12 @@ def create_llm_provider(overrides: Optional[Dict[str, Any]] = None) -> LLMProvid
             base_url=base_url,
         )
 
+    if provider == "deepseek":
+        api_key = _resolve_api_key(config, Settings.DEEPSEEK_API_KEY or "")
+        model = config.get("model") or Settings.DEEPSEEK_MODEL
+        base_url = config.get("base_url") or Settings.DEEPSEEK_BASE_URL
+        return OpenAICompatibleProvider(api_key=api_key, model=model, base_url=base_url)
+
     if provider in ("openai_compat", "local"):
         # Generic OpenAI-compatible server (e.g., Ollama/LM Studio/vLLM)
         default_base = (

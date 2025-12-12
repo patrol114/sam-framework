@@ -172,6 +172,14 @@ LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-your-key-here
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 XAI_API_KEY=xai-your-key-here
+DEEPSEEK_API_KEY=your-deepseek-key
+
+# Provider Overrides / Custom Endpoints
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+DEEPSEEK_MODEL=deepseek-chat
+OPENAI_BASE_URL=https://api.openai.com/v1  # or your OpenAI-compatible endpoint
+LOCAL_LLM_BASE_URL=http://localhost:11434/v1
+LOCAL_LLM_MODEL=llama3.1
 
 # Security
 SAM_FERNET_KEY=your-generated-key
@@ -191,9 +199,15 @@ sam provider list
 
 # Switch providers
 sam provider switch anthropic
+sam provider switch deepseek
 
 # Test provider connection
 sam provider test
+
+# Use custom OpenAI-compatible endpoint (vLLM, LM Studio, Ollama REST)
+export LLM_PROVIDER=openai_compat
+export OPENAI_BASE_URL=http://localhost:8080/v1
+export OPENAI_MODEL=gpt-4o-mini
 ```
 
 </details>

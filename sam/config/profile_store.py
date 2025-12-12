@@ -23,6 +23,8 @@ PROFILE_SCHEMA: Dict[str, Dict[str, Any]] = {
     "ANTHROPIC_MODEL": {"default": "claude-3-5-sonnet-latest", "type": str},
     "XAI_BASE_URL": {"default": "https://api.x.ai/v1", "type": str},
     "XAI_MODEL": {"default": "grok-2-latest", "type": str},
+    "DEEPSEEK_BASE_URL": {"default": "https://api.deepseek.com/v1", "type": str},
+    "DEEPSEEK_MODEL": {"default": "deepseek-chat", "type": str},
     "LOCAL_LLM_BASE_URL": {"default": "http://localhost:11434/v1", "type": str},
     "LOCAL_LLM_MODEL": {"default": "llama3.1", "type": str},
     "SAM_SOLANA_RPC_URL": {"default": "https://api.mainnet-beta.solana.com", "type": str},

@@ -133,7 +133,7 @@ def create_sam_config_validator() -> ConfigValidator:
             name="LLM_PROVIDER",
             required=False,
             default="openai",
-            validator=lambda x: x in ["openai", "anthropic", "xai", "openai_compat", "local"],
+            validator=lambda x: x in ["openai", "anthropic", "xai", "deepseek", "openai_compat", "local"],
             description="LLM provider to use for AI operations",
         )
     )
@@ -197,6 +197,10 @@ def create_sam_config_validator() -> ConfigValidator:
     xai_key = os.getenv("XAI_API_KEY")
     if llm_provider == "xai" and not xai_key:
         validator.warnings.append("LLM_PROVIDER is 'xai' but XAI_API_KEY is not set")
+
+    deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+    if llm_provider == "deepseek" and not deepseek_key:
+        validator.warnings.append("LLM_PROVIDER is 'deepseek' but DEEPSEEK_API_KEY is not set")
 
     return validator
 
