@@ -275,6 +275,31 @@ SAM provides 24+ production-ready tools organized by category:
 | `get_pump_token_info` | Detailed token information | `mint` |
 | `get_token_trades` | View trading activity | `mint` |
 
+### Uruchomienie agenta pump.fun na prawdziwym API (bez symulacji)
+
+1. Skonfiguruj sekrety: ustaw `SAM_WALLET_PRIVATE_KEY` z prywatnym kluczem portfela, a RPC
+   sieci Solana w `SAM_SOLANA_RPC_URL`. Upewnij się, że klucz jest przechowywany w bezpiecznym
+   menedżerze i nie trafia do plików.
+2. Przygotuj parametry wywołania: `--mint` (adres tokena), `--action` (`buy` lub `sell`),
+   `--amount` (kwota SOL dla kupna) lub `--percentage` (procent tokenów do sprzedaży) oraz
+   `--slippage` w procentach (0–50) do kontroli poślizgu cenowego.
+3. Uruchom `uv run sam pumpfun trade` z powyższymi parametrami, korzystając z zaufanego
+   środowiska i sieci.
+4. Po wykonaniu transakcji zweryfikuj hash w eksploratorze Solany i monitoruj saldo portfela.
+
+#### Referencyjna strategia bezpiecznego handlu
+
+- Wchodź małymi transzami, zwiększając ekspozycję dopiero po weryfikacji wolumenu i płynności
+  (unikasz poślizgu i front-runów).
+- Ustawiaj `--slippage` nisko (1–5%) dla tokenów o stabilnym wolumenie; podnoś tylko wtedy,
+  gdy potrzebujesz szybkiej realizacji na mało płynnych parach.
+- Dla sprzedaży stosuj stopniowe `--percentage` (np. 25% w kilku iteracjach), aby ograniczać
+  wpływ na cenę i ryzyko niepełnej realizacji.
+- Przed zakupem sprawdzaj kontrakt (`get_pump_token_info`) i ostatnie transakcje (`get_token_trades`)
+  w celu wychwycenia podejrzanych wzorców (honeypot, brak płynności, blokady transferu).
+- Pracuj na świeżym RPC z niskimi opóźnieniami; w razie błędów podpisu restartuj sesję i
+  regeneruj połączenie RPC, aby uniknąć duplikacji zleceń.
+
 ### Uranus.ag Perps
 
 | Tool | Description | Parameters |
