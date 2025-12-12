@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..core.tools import Tool, ToolSpec
 from ..integrations.smart_trader import SolanaTools
+from ..tools.pricing.price_tools import PriceClient
 from ..utils.http_client import get_session
 
 logger = logging.getLogger(__name__)
@@ -39,49 +40,20 @@ class JupiterTools:
         pass  # Shared HTTP client handles session lifecycle
 
     async def get_token_price(self, token_mint: str) -> Dict[str, Any]:
-        """Get token price from Jupiter Price API v3."""
+        """Get token price using PriceClient with fallback to Jupiter."""
         try:
-            session = await get_session()
+            # Use PriceClient which handles primary provider and Jupiter fallback
+            price_usd = await self.price_client.get_token_price_usd(token_mint)
 
-            params = {"ids": token_mint}
+            logger.info(f"Got price for {token_mint}: ${price_usd}")
+            return {
+                "token_mint": token_mint,
+                "price_usd": price_usd,
+                "source": "price_client",  # Could be primary provider or Jupiter fallback
+            }
 
-            async with session.get(f"{self.price_url}/price", params=params) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(f"Jupiter price API error {response.status}: {error_text}")
-                    return {"error": f"Price API error {response.status}: {error_text}"}
-
-                data = await response.json()
-
-                price_section = _get_mapping(data, "data")
-                token_data = _get_mapping(price_section or {}, token_mint)
-
-                if not token_data:
-                    return {"error": f"No price data found for token {token_mint}"}
-
-                price = float(token_data.get("price", 0) or 0)
-                info = PriceInfo(
-                    price_usd=price,
-                    symbol=str(token_data.get("symbol", "Unknown")),
-                    name=str(token_data.get("name", "Unknown")),
-                    decimals=int(token_data.get("decimals", 0) or 0),
-                )
-
-                logger.info(f"Got price for {token_mint}: ${info.price_usd}")
-                return {
-                    "token_mint": token_mint,
-                    "price_usd": info.price_usd,
-                    "symbol": info.symbol,
-                    "name": info.name,
-                    "decimals": info.decimals,
-                    "source": "jupiter",
-                }
-
-        except aiohttp.ClientError as e:
-            logger.error(f"Network error getting token price: {e}")
-            return {"error": f"Network error: {str(e)}"}
         except Exception as e:
-            logger.error(f"Unexpected error getting token price: {e}")
+            logger.error(f"Error getting token price: {e}")
             return {"error": str(e)}
 
     async def get_quote(

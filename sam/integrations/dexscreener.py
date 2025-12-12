@@ -8,6 +8,7 @@ from dexscreener import DexscreenerClient
 from pydantic import BaseModel, Field
 
 from ..core.tools import Tool, ToolSpec
+from ..market.token_pair import TokenPair
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +35,7 @@ class LiquidityInfo(Protocol):
     usd: Optional[float]
 
 
-class TokenPair(Protocol):
-    chain_id: Optional[str]
-    dex_id: Optional[str]
-    pair_address: Optional[str]
-    base_token: TokenInfo
-    quote_token: TokenInfo
-    price_usd: Optional[float]
-    price_change: Optional[PriceWindow]
-    volume: Optional[VolumeWindow]
-    liquidity: Optional[LiquidityInfo]
-    fdv: Optional[float]
-    market_cap: Optional[float]
-    pair_created_at: Optional[int]
-    url: Optional[str]
-    info: Optional[Dict[str, Any]]
+# TokenPair is now imported from ..market.token_pair
 
 
 class DexClientProtocol(Protocol):
