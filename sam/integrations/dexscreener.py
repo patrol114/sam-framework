@@ -68,7 +68,8 @@ class DexScreenerTools:
             # Run synchronous client in thread to avoid blocking event loop
             results = await asyncio.to_thread(self.client.search_pairs, query)
 
-            pairs = [_serialize_pair_summary(pair) for pair in _ensure_sequence(results)]
+            # Convert library TokenPair objects to custom TokenPair
+            pairs = [_serialize_pair_summary(TokenPair.from_dexscreener(pair)) for pair in _ensure_sequence(results)]
 
             logger.info(f"Found {len(pairs)} pairs for query: {query}")
             return {"query": query, "pairs": pairs, "total_pairs": len(pairs)}
