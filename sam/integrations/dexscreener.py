@@ -83,7 +83,8 @@ class DexScreenerTools:
             # Run synchronous client in thread to avoid blocking event loop
             results = await asyncio.to_thread(self.client.get_token_pairs, token_address)
 
-            pairs = [_serialize_pair_summary(pair) for pair in _ensure_sequence(results)]
+            # Convert library TokenPair objects to custom TokenPair
+            pairs = [_serialize_pair_summary(TokenPair.from_dexscreener(pair)) for pair in _ensure_sequence(results)]
 
             logger.info(f"Found {len(pairs)} pairs for token: {token_address}")
             return {"token_address": token_address, "pairs": pairs, "total_pairs": len(pairs)}
@@ -99,6 +100,9 @@ class DexScreenerTools:
             results = await asyncio.to_thread(self.client.get_token_pairs, f"solana:{pair_address}")
 
             pair = _extract_single_pair(results)
+            # Convert to custom TokenPair if it's a library object
+            if hasattr(pair, 'chain_id') and not isinstance(pair, TokenPair):
+                pair = TokenPair.from_dexscreener(pair)
             pair_info = _serialize_pair_detail(pair)
 
             logger.info(f"Retrieved pair info for: {pair_address}")
@@ -113,7 +117,8 @@ class DexScreenerTools:
         try:
             results = await asyncio.to_thread(self.client.get_trending_pairs, chain)
             seq = _ensure_sequence(results)
-            trending_pairs = [_serialize_trending_pair(pair) for pair in seq]
+            # Convert library TokenPair objects to custom TokenPair
+            trending_pairs = [_serialize_trending_pair(TokenPair.from_dexscreener(pair)) for pair in seq]
             return {
                 "chain": chain,
                 "trending_pairs": trending_pairs,
@@ -139,7 +144,8 @@ class DexScreenerTools:
                 continue
 
         sorted_pairs = sorted(all_pairs, key=_volume_24h, reverse=True)[:10]
-        trending_pairs = [_serialize_trending_pair(pair) for pair in sorted_pairs]
+        # Convert to custom TokenPair before serializing
+        trending_pairs = [_serialize_trending_pair(TokenPair.from_dexscreener(pair)) for pair in sorted_pairs]
 
         logger.info(f"Retrieved {len(trending_pairs)} fallback trending pairs for {chain}")
         return {
