@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..core.tools import Tool, ToolSpec
 from ..integrations.smart_trader import SolanaTools
-from ..tools.pricing.price_tools import PriceClient
+from ..tools.pricing.price_tools import PriceClient, HttpClientProtocol
 from ..utils.http_client import get_session
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,8 @@ class JupiterTools:
         self.base_url = "https://quote-api.jup.ag/v6"
         self.price_url = "https://api.jup.ag/price/v3"
         self.solana_tools = solana_tools
+        # Initialize PriceClient with HTTP client wrapper
+        self.price_client = None  # Will be initialized lazily
 
     async def close(self) -> None:
         """Close method for compatibility - shared client handles cleanup."""
@@ -42,6 +44,11 @@ class JupiterTools:
     async def get_token_price(self, token_mint: str) -> Dict[str, Any]:
         """Get token price using PriceClient with fallback to Jupiter."""
         try:
+            # Lazy initialization of PriceClient
+            if self.price_client is None:
+                http_client = AioHttpClientWrapper()
+                self.price_client = PriceClient(http_client)
+
             # Use PriceClient which handles primary provider and Jupiter fallback
             price_usd = await self.price_client.get_token_price_usd(token_mint)
 
