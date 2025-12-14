@@ -72,9 +72,18 @@ from .commands.maintenance import run_maintenance as cmd_run_maintenance
 from .commands.health import run_health_check as cmd_run_health
 from .commands.plugins import run_plugins_command as cmd_run_plugins
 from .interactive_settings import InquirerInterface
+from .integrations.pump_fun import PumpFunTools
 from .utils.ascii_loader import show_sam_intro
 from .utils.env_files import find_env_path
+from .utils.secure_storage import get_private_key
 # Note: integrations are now wired inside AgentBuilder
+from .strategies.pumpfun_autopilot import (
+    AutopilotConfig,
+    PumpFunAutopilot,
+    PumpFunPriceMonitor,
+    PumpFunToolsExecutor,
+    PumpFunCandidate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1256,6 +1265,65 @@ async def test_provider(provider_name: Optional[str] = None) -> int:
     return await _test(provider_name)
 
 
+async def run_pumpfun_autopilot_cmd(args: argparse.Namespace) -> int:
+    """Uruchom asynchroniczny autopilot pump.fun z zabezpieczeniami."""
+
+    from .integrations.solana.solana_tools import SolanaTools
+
+    private_key = get_private_key(CLI_CONTEXT.user_id) or os.getenv("SAM_WALLET_PRIVATE_KEY")
+    if not private_key:
+        print(
+            CLIFormatter.error(
+                "Brak zapisanego klucza prywatnego. Użyj `sam key import`, aby bezpiecznie wgrać klucz."
+            )
+        )
+        return 1
+
+    rpc_url = os.getenv("SAM_SOLANA_RPC_URL", Settings.SAM_SOLANA_RPC_URL)
+    solana_tools = SolanaTools(rpc_url, private_key=private_key)
+    pump_fun_tools = PumpFunTools(solana_tools=solana_tools)
+    price_monitor = PumpFunPriceMonitor(pump_fun_tools)
+    executor = PumpFunToolsExecutor(pump_fun_tools)
+
+    class PassiveScanner:
+        async def fetch_candidates(self) -> list[PumpFunCandidate]:
+            logger.info(
+                "Autopilot uruchomiony bez zewnętrznego skanera kandydatów – oczekiwanie na sygnały."
+            )
+            return []
+
+    class PassthroughScorer:
+        async def score(self, candidate: PumpFunCandidate) -> float:
+            return candidate.score
+
+    config = AutopilotConfig(
+        max_daily_sol=args.max_daily_sol,
+        base_position_sol=args.base_position_sol,
+        max_position_sol=args.max_position_sol,
+        max_open_positions=args.max_open_positions,
+        stop_loss_pct=args.stop_loss,
+        take_profit_pct=args.take_profit,
+        trailing_stop_pct=args.trailing_stop,
+        slippage=args.slippage,
+        priority_fee=args.priority_fee,
+        refresh_interval=args.refresh_interval,
+        max_position_duration=args.max_position_duration,
+        min_score=args.min_score,
+        min_liquidity=args.min_liquidity,
+    )
+
+    autopilot = PumpFunAutopilot(
+        PassiveScanner(), PassthroughScorer(), price_monitor, executor, config
+    )
+
+    try:
+        await autopilot.run()
+    except KeyboardInterrupt:
+        autopilot.stop()
+        logger.info("Autopilot pump.fun został zatrzymany przez użytkownika")
+    return 0
+
+
 # moved to sam.commands.health.run_health_check
 
 
@@ -1313,6 +1381,58 @@ async def main() -> int:
     switch_parser.add_argument("name", help="Provider name (openai, anthropic, xai, local)")
     test_parser = provider_subparsers.add_parser("test", help="Test provider connection")
     test_parser.add_argument("--provider", help="Provider to test (defaults to current)")
+
+    # Pump.fun autopilot
+    pumpfun_parser = subparsers.add_parser("pumpfun", help="Pump.fun automations")
+    pumpfun_subparsers = pumpfun_parser.add_subparsers(dest="pumpfun_action")
+    autopilot_parser = pumpfun_subparsers.add_parser(
+        "autopilot", help="Uruchom automatyczny trading na pump.fun z limitami bezpieczeństwa"
+    )
+    autopilot_parser.add_argument(
+        "--max-daily-sol", type=float, default=1.0, help="Maksymalna dzienna ekspozycja w SOL"
+    )
+    autopilot_parser.add_argument(
+        "--base-position-sol", type=float, default=0.1, help="Bazowy rozmiar pojedynczej pozycji w SOL"
+    )
+    autopilot_parser.add_argument(
+        "--max-position-sol", type=float, default=0.5, help="Maksymalny rozmiar pojedynczej pozycji"
+    )
+    autopilot_parser.add_argument(
+        "--max-open-positions", type=int, default=3, help="Limit równocześnie otwartych pozycji"
+    )
+    autopilot_parser.add_argument(
+        "--stop-loss", type=float, default=10.0, help="Stop-loss w % od ceny wejścia"
+    )
+    autopilot_parser.add_argument(
+        "--take-profit", type=float, default=30.0, help="Take-profit w % od ceny wejścia"
+    )
+    autopilot_parser.add_argument(
+        "--trailing-stop", type=float, default=12.0, help="Trailing stop w % od szczytu"
+    )
+    autopilot_parser.add_argument(
+        "--slippage", type=int, default=5, help="Maksymalny slippage dla transakcji"
+    )
+    autopilot_parser.add_argument(
+        "--priority-fee", type=float, default=0.00001, help="Opłata priority fee dla transakcji"
+    )
+    autopilot_parser.add_argument(
+        "--refresh-interval", type=float, default=5.0, help="Interwał odświeżania monitoringu (s)"
+    )
+    autopilot_parser.add_argument(
+        "--max-position-duration",
+        type=float,
+        default=900.0,
+        help="Maksymalny czas utrzymania pozycji w sekundach",
+    )
+    autopilot_parser.add_argument(
+        "--min-score", type=float, default=0.0, help="Minimalny wynik skanera wymagany do wejścia"
+    )
+    autopilot_parser.add_argument(
+        "--min-liquidity",
+        type=float,
+        default=0.0,
+        help="Minimalna płynność wymagana dla kandydata",
+    )
 
     # Agent management
     agent_parser = subparsers.add_parser("agent", help="Manage declarative agents")
@@ -1503,6 +1623,12 @@ async def main() -> int:
         else:
             print("Usage: sam provider {list|current|switch|test}")
             return 1
+
+    if args.command == "pumpfun":
+        if getattr(args, "pumpfun_action", None) == "autopilot":
+            return await run_pumpfun_autopilot_cmd(args)
+        print("Usage: sam pumpfun autopilot [options]")
+        return 1
 
     if args.command == "agent":
         action = getattr(args, "agent_action", None)

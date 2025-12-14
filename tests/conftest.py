@@ -3,8 +3,14 @@
 import logging
 import os
 import sys
+import types
 import pytest
 from unittest.mock import patch, MagicMock
+
+sys.modules.setdefault("dotenv", types.SimpleNamespace(load_dotenv=lambda *_, **__: None))
+sys.modules.setdefault(
+    "sam.utils.cli_helpers", types.SimpleNamespace(is_first_run=lambda: False)
+)
 
 
 @pytest.fixture(autouse=True, scope="session")

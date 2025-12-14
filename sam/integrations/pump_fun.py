@@ -136,7 +136,12 @@ class PumpFunTools:
             return {"error": str(e)}
 
     async def create_buy_transaction(
-        self, public_key: str, mint: str, amount: float, slippage: int = 1
+        self,
+        public_key: str,
+        mint: str,
+        amount: float,
+        slippage: int = 1,
+        priority_fee: float = 0.00001,
     ) -> Dict[str, Any]:
         """Create a buy transaction for a token on pump.fun."""
         try:
@@ -149,7 +154,7 @@ class PumpFunTools:
                 "denominatedInSol": True,
                 "amount": amount,
                 "slippage": slippage,
-                "priorityFee": 0.00001,
+                "priorityFee": priority_fee,
             }
 
             logger.info(f"Creating buy transaction: {amount} SOL for {mint}")
@@ -183,7 +188,12 @@ class PumpFunTools:
             return handle_error_gracefully(e, {"operation": "pump_fun_buy"})
 
     async def create_sell_transaction(
-        self, public_key: str, mint: str, percentage: int = 100, slippage: int = 1
+        self,
+        public_key: str,
+        mint: str,
+        percentage: int = 100,
+        slippage: int = 1,
+        priority_fee: float = 0.00001,
     ) -> Dict[str, Any]:
         """Create a sell transaction for a token on pump.fun."""
         try:
@@ -196,7 +206,7 @@ class PumpFunTools:
                 "denominatedInSol": False,
                 "amount": percentage,  # Percentage of holdings to sell
                 "slippage": slippage,
-                "priorityFee": 0.00001,
+                "priorityFee": priority_fee,
             }
 
             logger.info(f"Creating sell transaction: {percentage}% of {mint}")
