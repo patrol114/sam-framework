@@ -143,6 +143,7 @@ API_KEY_ALIASES = {
     "OPENAI_API_KEY": "openai_api_key",
     "ANTHROPIC_API_KEY": "anthropic_api_key",
     "XAI_API_KEY": "xai_api_key",
+    "DEEPSEEK_API_KEY": "deepseek_api_key",
     "LOCAL_LLM_API_KEY": "local_llm_api_key",
     "ASTER_API_KEY": "aster_api",
     "BRAVE_API_KEY": "brave_api_key",
@@ -277,6 +278,10 @@ class Settings:
     XAI_BASE_URL: Optional[str] = "https://api.x.ai/v1"
     XAI_MODEL: str = "grok-2-latest"
 
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_BASE_URL: Optional[str] = "https://api.deepseek.com/v1"
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+
     LOCAL_LLM_BASE_URL: Optional[str] = "http://localhost:11434/v1"
     LOCAL_LLM_API_KEY: Optional[str] = None
     LOCAL_LLM_MODEL: str = "llama3.1"
@@ -384,6 +389,17 @@ class Settings:
             _value_from_sources("XAI_BASE_URL", "https://api.x.ai/v1")
         )
         cls.XAI_MODEL = _as_str(_value_from_sources("XAI_MODEL", "grok-2-latest"))
+
+        deepseek_key = _as_optional_str(_api_key("DEEPSEEK_API_KEY", "DEEPSEEK_API_KEY"))
+        cls.DEEPSEEK_API_KEY = (
+            _validate_api_key(deepseek_key, "DeepSeek") if deepseek_key else None
+        )
+        cls.DEEPSEEK_BASE_URL = _as_optional_str(
+            _value_from_sources("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+        )
+        cls.DEEPSEEK_MODEL = _as_str(
+            _value_from_sources("DEEPSEEK_MODEL", "deepseek-chat")
+        )
 
         cls.LOCAL_LLM_BASE_URL = _as_optional_str(
             _value_from_sources("LOCAL_LLM_BASE_URL", "http://localhost:11434/v1")
@@ -582,6 +598,9 @@ class Settings:
         elif provider == "xai":
             if not cls.XAI_API_KEY:
                 errors.append("XAI_API_KEY is required when LLM_PROVIDER=xai")
+        elif provider == "deepseek":
+            if not cls.DEEPSEEK_API_KEY:
+                errors.append("DEEPSEEK_API_KEY is required when LLM_PROVIDER=deepseek")
         elif provider in {"openai_compat", "local"}:
             base = cls.OPENAI_BASE_URL if provider == "openai_compat" else cls.LOCAL_LLM_BASE_URL
             if not base:
@@ -611,6 +630,9 @@ class Settings:
         elif cls.LLM_PROVIDER == "xai":
             logger.info(f"  xAI Model: {cls.XAI_MODEL}")
             logger.info(f"  xAI Base URL: {cls.XAI_BASE_URL}")
+        elif cls.LLM_PROVIDER == "deepseek":
+            logger.info(f"  DeepSeek Model: {cls.DEEPSEEK_MODEL}")
+            logger.info(f"  DeepSeek Base URL: {cls.DEEPSEEK_BASE_URL}")
         elif cls.LLM_PROVIDER in ("openai_compat", "local"):
             model = cls.OPENAI_MODEL if cls.LLM_PROVIDER == "openai_compat" else cls.LOCAL_LLM_MODEL
             base = (

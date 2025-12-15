@@ -16,8 +16,15 @@ import re
 import shutil
 import sys
 import textwrap
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Optional, cast
+
+if __name__ == "__main__" and __package__ is None:
+    # Enable running as a standalone script (python sam/cli.py)
+    package_root = Path(__file__).resolve().parent.parent
+    sys.path.append(str(package_root))
+    __package__ = "sam"
 
 try:
     import uvloop
@@ -71,6 +78,7 @@ from .commands.api import run_api_server as cmd_run_api_server
 from .commands.maintenance import run_maintenance as cmd_run_maintenance
 from .commands.health import run_health_check as cmd_run_health
 from .commands.plugins import run_plugins_command as cmd_run_plugins
+from .commands.pumpfun import run_pumpfun_trade as cmd_run_pumpfun_trade
 from .interactive_settings import InquirerInterface
 from .integrations.pump_fun import PumpFunTools
 from .utils.ascii_loader import show_sam_intro
@@ -109,7 +117,6 @@ def _ensure_inquirer() -> bool:
 # CLI request context + shared factory for agent reuse
 CLI_CONTEXT = RequestContext(user_id="cli-default")
 CLI_FACTORY = get_default_factory()
-
 
 # Tool name mappings for friendly display
 TOOL_DISPLAY_NAMES = {
@@ -526,6 +533,8 @@ async def run_interactive_session(
                 return Settings.ANTHROPIC_MODEL
             if Settings.LLM_PROVIDER == "xai":
                 return Settings.XAI_MODEL
+            if Settings.LLM_PROVIDER == "deepseek":
+                return Settings.DEEPSEEK_MODEL
             if Settings.LLM_PROVIDER == "local":
                 return Settings.LOCAL_LLM_MODEL
             if Settings.LLM_PROVIDER == "openai_compat":
@@ -647,6 +656,9 @@ async def run_interactive_session(
         elif Settings.LLM_PROVIDER == "xai":
             print(f" xAI Model: {Settings.XAI_MODEL}")
             print(f" xAI Base URL: {Settings.XAI_BASE_URL}")
+        elif Settings.LLM_PROVIDER == "deepseek":
+            print(f" DeepSeek Model: {Settings.DEEPSEEK_MODEL}")
+            print(f" DeepSeek Base URL: {Settings.DEEPSEEK_BASE_URL}")
         elif Settings.LLM_PROVIDER in ("openai_compat", "local"):
             model = (
                 Settings.OPENAI_MODEL
@@ -1525,6 +1537,41 @@ async def main() -> int:
         help="Grant administrative privileges",
     )
 
+    pumpfun_parser = subparsers.add_parser(
+        "pumpfun", help="Realne transakcje pump.fun przez oficjalne API"
+    )
+    pumpfun_subparsers = pumpfun_parser.add_subparsers(dest="pumpfun_action")
+    pumpfun_trade_parser = pumpfun_subparsers.add_parser(
+        "trade", help="Wykonuje prawdziwe zlecenie kupna/sprzedaży na pump.fun"
+    )
+    pumpfun_trade_parser.add_argument(
+        "--mint",
+        required=True,
+        help="Adres mint tokenu pump.fun",
+    )
+    pumpfun_trade_parser.add_argument(
+        "--action",
+        choices=["buy", "sell"],
+        default="buy",
+        help="Rodzaj transakcji: kupno lub sprzedaż",
+    )
+    pumpfun_trade_parser.add_argument(
+        "--amount",
+        type=float,
+        help="Kwota SOL do wydania (dla buy)",
+    )
+    pumpfun_trade_parser.add_argument(
+        "--percentage",
+        type=int,
+        help="Procent posiadanych tokenów do sprzedaży (dla sell)",
+    )
+    pumpfun_trade_parser.add_argument(
+        "--slippage",
+        type=int,
+        default=5,
+        help="Poślizg cenowy w procentach (0-50, domyślnie 5)",
+    )
+
     plugins_parser = subparsers.add_parser(
         "plugins", help="Manage plugin trust policy and allowlist"
     )
@@ -1692,6 +1739,23 @@ async def main() -> int:
         reload_flag = bool(getattr(args, "reload", False))
         api_log_level = getattr(args, "api_log_level", "info")
         return await cmd_run_api_server(host, port, reload=reload_flag, log_level=api_log_level)
+
+    if args.command == "pumpfun":
+        action = getattr(args, "pumpfun_action", None)
+        if action == "trade":
+            result = await cmd_run_pumpfun_trade(
+                mint=getattr(args, "mint"),
+                amount_sol=getattr(args, "amount", None),
+                percentage=getattr(args, "percentage", None),
+                slippage=int(getattr(args, "slippage", 5) or 5),
+                action=getattr(args, "action", "buy"),
+            )
+            return result.exit_code
+        print(
+            "Usage: sam pumpfun trade --mint <mint> [--action buy|sell --amount <sol> "
+            "--percentage <pct> --slippage <bps>]"
+        )
+        return 1
 
     if args.command == "setup":
         show_setup_status(verbose=True)
@@ -1974,6 +2038,8 @@ async def main() -> int:
         elif Settings.LLM_PROVIDER == "anthropic" and not Settings.ANTHROPIC_API_KEY:
             need_onboarding = True
         elif Settings.LLM_PROVIDER == "xai" and not Settings.XAI_API_KEY:
+            need_onboarding = True
+        elif Settings.LLM_PROVIDER == "deepseek" and not Settings.DEEPSEEK_API_KEY:
             need_onboarding = True
         # local/openai_compat may not need API keys in some cases
 

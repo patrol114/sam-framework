@@ -121,6 +121,12 @@ class TestSetupStatus:
             with patch.object(Settings, "XAI_API_KEY", "test_key"):
                 assert _llm_api_configured() is True
 
+    def test_llm_api_configured_deepseek(self):
+        """Test LLM API configuration check for DeepSeek."""
+        with patch.object(Settings, "LLM_PROVIDER", "deepseek"):
+            with patch.object(Settings, "DEEPSEEK_API_KEY", "test_key"):
+                assert _llm_api_configured() is True
+
     def test_llm_api_configured_local(self):
         """Test LLM API configuration check for local provider."""
         with patch.object(Settings, "LLM_PROVIDER", "local"):

@@ -112,11 +112,12 @@ def _llm_api_configured() -> bool:
         return bool(Settings.ANTHROPIC_API_KEY)
     if provider == "xai":
         return bool(Settings.XAI_API_KEY)
-    if provider in ("openai_compat", "local"):
-        base = (
-            Settings.OPENAI_BASE_URL if provider == "openai_compat" else Settings.LOCAL_LLM_BASE_URL
-        )
-        return bool(base)
+    if provider == "deepseek":
+        return bool(Settings.DEEPSEEK_API_KEY)
+    if provider == "openai_compat":
+        return bool(Settings.OPENAI_BASE_URL or Settings.OPENAI_API_KEY)
+    if provider == "local":
+        return bool(Settings.LOCAL_LLM_BASE_URL)
     return False
 
 
@@ -160,6 +161,9 @@ def check_setup_status() -> Dict[str, Any]:
         elif Settings.LLM_PROVIDER == "xai":
             status["issues"].append("xAI API key not set")
             status["recommendations"].append("Set XAI_API_KEY environment variable")
+        elif Settings.LLM_PROVIDER == "deepseek":
+            status["issues"].append("DeepSeek API key not set")
+            status["recommendations"].append("Set DEEPSEEK_API_KEY environment variable")
         else:
             status["issues"].append("OpenAI-compatible base URL not configured")
             status["recommendations"].append(

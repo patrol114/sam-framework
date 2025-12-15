@@ -38,6 +38,16 @@ def list_providers() -> None:
             "models": ["grok-2-latest", "grok-beta"],
             "description": "xAI Grok models",
         },
+        "deepseek": {
+            "name": "DeepSeek",
+            "models": ["deepseek-chat", "deepseek-reasoner"],
+            "description": "DeepSeek OpenAI-compatible chat and reasoning models",
+        },
+        "openai_compat": {
+            "name": "OpenAI-Compatible",
+            "models": ["set via OPENAI_MODEL/LOCAL_LLM_MODEL"],
+            "description": "Custom OpenAI-compatible endpoints (vLLM, Fireworks, etc.)",
+        },
         "local": {
             "name": "Local/Ollama",
             "models": ["llama3.1", "llama3.2", "mixtral", "custom"],
@@ -75,6 +85,14 @@ def show_current_provider() -> None:
         print(f"Model: {Settings.XAI_MODEL}")
         print(f"Base URL: {Settings.XAI_BASE_URL}")
         print(f"API Key: {'✓ configured' if Settings.XAI_API_KEY else '✗ missing'}")
+    elif provider == "deepseek":
+        print(f"Model: {Settings.DEEPSEEK_MODEL}")
+        print(f"Base URL: {Settings.DEEPSEEK_BASE_URL}")
+        print(f"API Key: {'✓ configured' if Settings.DEEPSEEK_API_KEY else '✗ missing'}")
+    elif provider == "openai_compat":
+        print(f"Model: {Settings.OPENAI_MODEL}")
+        print(f"Base URL: {Settings.OPENAI_BASE_URL or 'required'}")
+        print(f"API Key: {'✓ configured' if Settings.OPENAI_API_KEY else 'optional'}")
     elif provider == "local":
         print(f"Model: {Settings.LOCAL_LLM_MODEL}")
         print(f"Base URL: {Settings.LOCAL_LLM_BASE_URL}")
@@ -83,7 +101,7 @@ def show_current_provider() -> None:
 
 def switch_provider(provider_name: str) -> int:
     """Switch to a different LLM provider by updating .env and process env."""
-    valid_providers = ["openai", "anthropic", "xai", "local", "openai_compat"]
+    valid_providers = ["openai", "anthropic", "xai", "deepseek", "local", "openai_compat"]
     if provider_name not in valid_providers:
         print(CLIFormatter.error(f"Invalid provider. Choose from: {', '.join(valid_providers)}"))
         return 1
@@ -125,6 +143,8 @@ def switch_provider(provider_name: str) -> int:
             key_configured = bool(Settings.ANTHROPIC_API_KEY)
         elif provider_name == "xai":
             key_configured = bool(Settings.XAI_API_KEY)
+        elif provider_name == "deepseek":
+            key_configured = bool(Settings.DEEPSEEK_API_KEY)
         elif provider_name == "local":
             key_configured = True
         if not key_configured:

@@ -172,6 +172,14 @@ LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-your-key-here
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 XAI_API_KEY=xai-your-key-here
+DEEPSEEK_API_KEY=your-deepseek-key
+
+# Provider Overrides / Custom Endpoints
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+DEEPSEEK_MODEL=deepseek-chat
+OPENAI_BASE_URL=https://api.openai.com/v1  # or your OpenAI-compatible endpoint
+LOCAL_LLM_BASE_URL=http://localhost:11434/v1
+LOCAL_LLM_MODEL=llama3.1
 
 # Security
 SAM_FERNET_KEY=your-generated-key
@@ -191,9 +199,15 @@ sam provider list
 
 # Switch providers
 sam provider switch anthropic
+sam provider switch deepseek
 
 # Test provider connection
 sam provider test
+
+# Use custom OpenAI-compatible endpoint (vLLM, LM Studio, Ollama REST)
+export LLM_PROVIDER=openai_compat
+export OPENAI_BASE_URL=http://localhost:8080/v1
+export OPENAI_MODEL=gpt-4o-mini
 ```
 
 </details>
@@ -274,6 +288,31 @@ SAM provides 24+ production-ready tools organized by category:
 | `pump_fun_sell` | Sell tokens with percentage | `mint`, `percentage`, `slippage` |
 | `get_pump_token_info` | Detailed token information | `mint` |
 | `get_token_trades` | View trading activity | `mint` |
+
+### Uruchomienie agenta pump.fun na prawdziwym API (bez symulacji)
+
+1. Skonfiguruj sekrety: ustaw `SAM_WALLET_PRIVATE_KEY` z prywatnym kluczem portfela, a RPC
+   sieci Solana w `SAM_SOLANA_RPC_URL`. Upewnij się, że klucz jest przechowywany w bezpiecznym
+   menedżerze i nie trafia do plików.
+2. Przygotuj parametry wywołania: `--mint` (adres tokena), `--action` (`buy` lub `sell`),
+   `--amount` (kwota SOL dla kupna) lub `--percentage` (procent tokenów do sprzedaży) oraz
+   `--slippage` w procentach (0–50) do kontroli poślizgu cenowego.
+3. Uruchom `uv run sam pumpfun trade` z powyższymi parametrami, korzystając z zaufanego
+   środowiska i sieci.
+4. Po wykonaniu transakcji zweryfikuj hash w eksploratorze Solany i monitoruj saldo portfela.
+
+#### Referencyjna strategia bezpiecznego handlu
+
+- Wchodź małymi transzami, zwiększając ekspozycję dopiero po weryfikacji wolumenu i płynności
+  (unikasz poślizgu i front-runów).
+- Ustawiaj `--slippage` nisko (1–5%) dla tokenów o stabilnym wolumenie; podnoś tylko wtedy,
+  gdy potrzebujesz szybkiej realizacji na mało płynnych parach.
+- Dla sprzedaży stosuj stopniowe `--percentage` (np. 25% w kilku iteracjach), aby ograniczać
+  wpływ na cenę i ryzyko niepełnej realizacji.
+- Przed zakupem sprawdzaj kontrakt (`get_pump_token_info`) i ostatnie transakcje (`get_token_trades`)
+  w celu wychwycenia podejrzanych wzorców (honeypot, brak płynności, blokady transferu).
+- Pracuj na świeżym RPC z niskimi opóźnieniami; w razie błędów podpisu restartuj sesję i
+  regeneruj połączenie RPC, aby uniknąć duplikacji zleceń.
 
 ### Uranus.ag Perps
 
